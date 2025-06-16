@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>占い依存度セルフチェック | あなたの魂が求める本当の輝き</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Warm Neutrals) -->
+    <!-- Application Structure Plan: A guided, multi-step interactive diagnostic application. The user progresses from a self-check quiz (the 7 characteristics) to a personalized visual result (radar chart), then learns about the associated risks, and finally receives a toolkit of actionable solutions. This structure was chosen to transform passive reading into an engaging, empowering journey of self-reflection, making the content more personal and actionable than a standard blog layout. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: 7 characteristics of dependency -> Goal: Self-assessment/Engage -> Viz: Interactive checklist (HTML/JS cards) -> Interaction: Click to select traits -> Justification: Active participation increases engagement.
+        - Report Info: User's selected traits -> Goal: Summarize/Compare -> Viz: Radar Chart (Chart.js/Canvas) -> Interaction: Chart is dynamically generated; hover for details -> Justification: Provides a unique, personal "shape" of the user's tendencies, more impactful than text alone.
+        - Report Info: 4 dangers & 5 solutions -> Goal: Organize/Inform -> Viz: Interactive accordions/cards (HTML/JS) -> Interaction: Click to reveal details -> Justification: Prevents information overload and presents content in digestible chunks.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #FDFBF8;
+            color: #4B423A;
+        }
+        .app-section {
+            display: none;
+        }
+        .app-section.active {
+            display: block;
+        }
+        .trait-card {
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+        }
+        .trait-card.selected {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(181, 151, 115, 0.2), 0 4px 6px -2px rgba(181, 151, 115, 0.1);
+            border-color: #C8A97E;
+            background-color: #FCF8F2;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .btn-primary {
+            background-color: #8C6A48;
+            color: #FDFBF8;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #6F5539;
+        }
+        .btn-secondary {
+            background-color: transparent;
+            color: #8C6A48;
+            border: 1px solid #8C6A48;
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #FCF8F2;
+            color: #6F5539;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
+
+        <header class="text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-[#6F5539] mb-2">占い依存度セルフチェック</h1>
+            <p class="text-md text-[#8C6A48]">あなたの魂が求める本当の輝きを見つける旅へ</p>
+        </header>
+
+        <main id="app-container">
+
+            <section id="intro" class="app-section active text-center">
+                <div class="bg-white/50 p-6 md:p-10 rounded-xl shadow-sm border border-stone-200">
+                    <h2 class="text-2xl font-semibold text-[#6F5539] mb-4">ようこそ</h2>
+                    <p class="text-left text-base md:text-lg leading-relaxed mb-6">
+                        占いは、人生の羅針盤となり、あなたの魂の望みを明確にするための素晴らしいツールです。しかし時に、それに頼りすぎてしまうことで、ご自身の輝きを曇らせてしまうこともあります。<br><br>
+                        このセルフチェックは、「占い依存」や「占いジプシー」と呼ばれる状態に陥りやすい魂の傾向をご自身で探求し、そこから抜け出すためのヒントを見つけるためのものです。<br><br>
+                        あなたの心を静かに見つめ、当てはまる項目をチェックしてみてください。
+                    </p>
+                    <button onclick="showSection('quiz')" class="btn-primary font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        セルフチェックを始める
+                    </button>
+                </div>
+            </section>
+
+            <section id="quiz" class="app-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-[#6F5539] mb-2">魂の傾向セルフチェック</h2>
+                    <p class="text-[#8C6A48]">あなたの心に響く項目を、直感で選んでみてください。</p>
+                </div>
+                <div id="trait-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
+                </div>
+                <div class="text-center">
+                    <button onclick="showResults()" class="btn-primary font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        結果を見る
+                    </button>
+                </div>
+            </section>
+
+            <section id="results" class="app-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-[#6F5539] mb-2">あなたの魂の傾向</h2>
+                    <p class="text-[#8C6A48]">これが、あなたの魂の設計図に現れた現在の傾向です。</p>
+                </div>
+                <div class="bg-white/50 p-4 md:p-8 rounded-xl shadow-sm border border-stone-200 mb-8">
+                    <div class="chart-container">
+                        <canvas id="resultChart"></canvas>
+                    </div>
+                </div>
+                <div id="result-summary" class="bg-white/50 p-6 md:p-8 rounded-xl shadow-sm border border-stone-200">
+                    <h3 class="text-xl font-bold text-[#6F5539] mb-4 text-center">傾向の解説</h3>
+                    <div id="summary-text" class="space-y-4 text-base leading-relaxed"></div>
+                </div>
+                <div class="text-center mt-10">
+                    <button onclick="showSection('dangers')" class="btn-primary font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        次へ：依存がもたらす危険性
+                    </button>
+                </div>
+            </section>
+
+            <section id="dangers" class="app-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-[#6F5539] mb-2">依存がもたらす危険性</h2>
+                    <p class="text-[#8C6A48]">占いに頼りすぎると、魂の輝きが曇ってしまうことがあります。</p>
+                </div>
+                <div id="danger-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                </div>
+                <div class="text-center mt-10 space-x-4">
+                    <button onclick="showSection('results')" class="btn-secondary font-bold py-3 px-8 rounded-full">
+                        結果に戻る
+                    </button>
+                     <button onclick="showSection('solutions')" class="btn-primary font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        次へ：輝きを取り戻す方法
+                    </button>
+                </div>
+            </section>
+            
+            <section id="solutions" class="app-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-[#6F5539] mb-2">魂の輝きを取り戻すための第一歩</h2>
+                    <p class="text-[#8C6A48]">占いを健全なツールとして活用し、あなたの人生の主役に戻りましょう。</p>
+                </div>
+                <div id="solution-list" class="space-y-4">
+                </div>
+                 <div class="text-center mt-10">
+                    <button onclick="showSection('dangers')" class="btn-secondary font-bold py-3 px-8 rounded-full">
+                        前に戻る
+                    </button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <footer class="text-center py-6 text-sm text-stone-400">
+        <p>このチェックは医学的な診断に代わるものではありません。あくまで自己理解を深めるためのツールです。</p>
+        <p>&copy; 2025 占いサロンレガーロ</p>
+    </footer>
+
+    <script>
+        const appData = {
+            traits: [
+                { id: 'anxiety', title: '漠然とした不安', text: '「何か悪いことが起こるのでは」「このままで大丈夫？」といった、はっきりしない不安感を常に抱えている。' },
+                { id: 'selfEsteem', title: '自己肯定感の揺らぎ', text: '自分の価値や能力に自信が持てず、常に「これで合っているのだろうか」と疑心暗鬼になりがち。' },
+                { id: 'perfectionism', title: '完璧主義と失敗への恐れ', text: '物事を完璧にこなしたい、あるいは失敗を極端に恐れるあまり、未来の不確実性に強いストレスを感じる。' },
+                { id: 'indecisiveness', title: '自己決定が苦手', text: '小さなことから大きな決断まで、何かを決めることが苦手で、つい他者に判断を委ねてしまう。' },
+                { id: 'approvalSeeking', title: '強い承認欲求', text: '周囲からの評価や愛情を強く求め、そのために無理をしたり、他者の言葉に過度に左右されたりする。' },
+                { id: 'barnumEffect', title: 'バーナム効果に陥りやすい', text: '占いの言葉を「自分だけに当てはまる特別なメッセージ」だと強く感じ、過度に信じ込んでしまう。' },
+                { id: 'impatience', title: '安易な解決を求める', text: '困難に直面した時、じっくり向き合うよりも、すぐに答えや解決策が欲しいと感じてしまう。' }
+            ],
+            dangers: [
+                { title: '自己成長の停滞', text: '自分で考え、決断し、行動する機会が失われ、魂が成長するチャンスを逃してしまいます。困難を乗り越えるたびに強くなるはずのあなたの魂が、停滞してしまうかもしれません。' },
+                { title: '金銭的・時間的な損失', text: '高額な鑑定料や、納得いくまで占い師を巡ることで、気づかないうちに多大な時間と費用を費やしてしまいます。それは、あなたの人生を豊かにするために使えるはずの貴重なリソースです。' },
+                { title: '人間関係の歪み', text: '占い師との関係が主従関係のようになり、周囲の友人や家族との健全な人間関係が希薄になることがあります。また、占いの結果に縛られることで、大切な人との関係に亀裂が入ることも考えられます。' },
+                { title: '本質的な不安の増大', text: '一時的に安心感を得られても、占いが「正解」をくれないと、かえって不安や焦りが募り、精神的に疲弊してしまうことがあります。あなたの魂は、真の安心を外ではなく、内側に求めているのです。' }
+            ],
+            solutions: [
+                { title: '小さなことから「自分で決める」練習をする', text: '今日のランチは何にするか、週末に何をして過ごすかなど、日常のささやかなことからで構いません。占いの結果を気にせず、「自分がどうしたいか」を優先して決めてみましょう。この積み重ねが、あなたの自己決定力を育んでくれます。' },
+                { title: '別の「心の拠り所」を見つける', text: '占いに頼る以外の、心の安らぎやストレス解消法を見つけましょう。趣味に没頭する、体を動かす、信頼できる友人と語り合う、自然の中で過ごすなど、あなたが「心から楽しい」「心地よい」と感じる時間を持つことが大切です。' },
+                { title: '不安や悩みを「言葉にする」', text: '占いに聞く前に、まず、あなたが抱えている不安や悩みを、紙に書き出したり、信頼できる誰か（友人、家族、パートナーなど）に言葉で話してみましょう。言葉にすることで、感情が整理され、案外、解決策が見えてくることもあります。' },
+                { title: '「魂の休息」を与える', text: '時には、占いや情報から離れて、心と体に休息を与えましょう。瞑想や深呼吸、静かな場所で過ごす時間を持つことで、あなたの内なる声や、魂が本当に求めているものに気づくことができるはずです。' },
+                { title: '必要であれば、専門家のサポートを検討する', text: 'もし、ご自身だけでは依存から抜け出すのが難しいと感じる場合は、心の専門家（カウンセラーや精神科医など）のサポートを検討してみてください。彼らはあなたの心に寄り添い、真の解決へと導くための専門的な知見を持っています。それは、決して恥ずかしいことではなく、ご自身の魂を守り、成長させるための賢明な選択です。' }
+            ],
+            summaryTemplates: {
+                anxiety: '漠然とした不安を抱えやすい傾向があるようです。未来の不確かさよりも、今この瞬間の心の平穏に焦点を当てることが、輝きを取り戻す鍵となるでしょう。',
+                selfEsteem: '自己肯定感が揺らぎやすい一面があるかもしれません。あなたの価値は、誰かの許可や保証がなくても、すでにあなたの中に存在しています。内なる声に耳を澄ませてみてください。',
+                perfectionism: '完璧でありたい、失敗したくないという気持ちが強いようです。しかし、人生の美しさは不完全さの中にも宿ります。小さな成功体験を積み重ね、しなやかさを育てていきましょう。',
+                indecisiveness: '自分で決めることに苦手意識があるかもしれません。あなたの人生の舵は、あなたが握っています。小さな選択からで良いので、自分の意思で道を選ぶ練習を始めてみましょう。',
+                approvalSeeking: '他者からの承認を強く求める傾向が見られます。外からの評価ではなく、あなた自身が自分を認め、愛することができた時、魂は本当の自由を手に入れます。',
+                barnumEffect: '占いの言葉を自分事として強く受け止める、素直な心をお持ちのようです。その純粋さを、今度はご自身の内なる声を聞くために使ってみてはいかがでしょうか。',
+                impatience: 'すぐに答えや解決策を求めてしまう傾向があるかもしれません。人生の課題には、じっくり向き合うことでしか得られない深い学びがあります。焦らず、自分のペースを大切にしてください。',
+                default: 'あなたの魂は、あなた自身の力で輝くことを知っています。このチェックをきっかけに、ご自身の内なる声に耳を傾け、人生の主導権を自分の手に取り戻していきましょう。',
+                none: '素晴らしいです！あなたは自分の心をしっかりと見つめ、魂のバランスを保っているようです。占いは人生を豊かにするスパイスとして、これからも上手に活用していけるでしょう。'
+            }
+        };
+
+        let userSelections = {};
+        let resultChartInstance = null;
+
+        function initializeApp() {
+            const traitList = document.getElementById('trait-list');
+            appData.traits.forEach(trait => {
+                const card = document.createElement('div');
+                card.className = 'trait-card bg-white p-6 rounded-lg border-2 border-transparent shadow-sm hover:shadow-md';
+                card.dataset.traitId = trait.id;
+                card.innerHTML = `
+                    <h3 class="font-bold text-lg text-[#6F5539] mb-2">${trait.title}</h3>
+                    <p class="text-sm text-stone-600">${trait.text}</p>
+                `;
+                card.addEventListener('click', () => toggleTrait(trait.id, card));
+                traitList.appendChild(card);
+                userSelections[trait.id] = false;
+            });
+
+            const dangerList = document.getElementById('danger-list');
+            appData.dangers.forEach(danger => {
+                const item = document.createElement('div');
+                item.className = 'bg-white/80 p-6 rounded-lg shadow-sm border border-stone-200';
+                item.innerHTML = `
+                    <h3 class="font-bold text-lg text-[#8C6A48] mb-2">${danger.title}</h3>
+                    <p class="text-sm text-stone-600">${danger.text}</p>
+                `;
+                dangerList.appendChild(item);
+            });
+
+            const solutionList = document.getElementById('solution-list');
+            appData.solutions.forEach((solution, index) => {
+                const item = document.createElement('div');
+                item.className = 'bg-white rounded-lg shadow-sm border border-stone-200';
+                item.innerHTML = `
+                    <div class="accordion-header p-4 cursor-pointer flex justify-between items-center" data-index="${index}">
+                        <h3 class="font-bold text-md text-[#6F5539]">${solution.title}</h3>
+                        <span class="text-[#C8A97E] transform transition-transform duration-300">&#9662;</span>
+                    </div>
+                    <div class="accordion-content px-4">
+                        <p class="py-4 border-t border-stone-200 text-sm text-stone-600">${solution.text}</p>
+                    </div>
+                `;
+                solutionList.appendChild(item);
+            });
+            
+            solutionList.addEventListener('click', function(e) {
+                const header = e.target.closest('.accordion-header');
+                if (header) {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('span');
+                    
+                    document.querySelectorAll('.accordion-content').forEach(c => {
+                        if (c !== content) {
+                           c.style.maxHeight = null;
+                           c.previousElementSibling.querySelector('span').classList.remove('rotate-180');
+                        }
+                    });
+
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.classList.remove('rotate-180');
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.classList.add('rotate-180');
+                    }
+                }
+            });
+        }
+
+        function toggleTrait(traitId, cardElement) {
+            userSelections[traitId] = !userSelections[traitId];
+            cardElement.classList.toggle('selected');
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.app-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function showResults() {
+            const ctx = document.getElementById('resultChart').getContext('2d');
+            const labels = appData.traits.map(t => t.title);
+            const data = appData.traits.map(t => userSelections[t.id] ? 1 : 0);
+
+            if (resultChartInstance) {
+                resultChartInstance.destroy();
+            }
+
+            resultChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'あなたの傾向',
+                        data: data,
+                        backgroundColor: 'rgba(140, 106, 72, 0.2)',
+                        borderColor: 'rgba(140, 106, 72, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(140, 106, 72, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(140, 106, 72, 1)'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(75, 66, 58, 0.2)' },
+                            grid: { color: 'rgba(75, 66, 58, 0.2)' },
+                            pointLabels: { 
+                                font: { size: 12 },
+                                color: '#6F5539'
+                            },
+                            ticks: {
+                                display: false,
+                                beginAtZero: true,
+                                max: 1,
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            generateSummaryText();
+            showSection('results');
+        }
+
+        function generateSummaryText() {
+            const summaryContainer = document.getElementById('summary-text');
+            summaryContainer.innerHTML = '';
+            let hasSelections = false;
+
+            appData.traits.forEach(trait => {
+                if (userSelections[trait.id]) {
+                    hasSelections = true;
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>${trait.title}:</strong> ${appData.summaryTemplates[trait.id]}`;
+                    summaryContainer.appendChild(p);
+                }
+            });
+
+            if (!hasSelections) {
+                const p = document.createElement('p');
+                p.textContent = appData.summaryTemplates.none;
+                summaryContainer.appendChild(p);
+            } else {
+                 const p = document.createElement('p');
+                 p.className = "mt-6 pt-4 border-t border-stone-200";
+                 p.textContent = appData.summaryTemplates.default;
+                 summaryContainer.appendChild(p);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
